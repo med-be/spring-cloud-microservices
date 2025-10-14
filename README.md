@@ -52,6 +52,9 @@ A Spring Boot microservices project demonstrating service discovery, API gateway
 - **Netflix Eureka**: Service discovery
 - **Spring Cloud Gateway**: API Gateway
 - **OpenFeign**: Service-to-service communication
+- **Spring Boot Actuator**: Health checks and monitoring
+- **Docker**: Containerization
+- **Docker Compose**: Container orchestration
 
 ## 📋 Prerequisites
 
@@ -61,13 +64,56 @@ A Spring Boot microservices project demonstrating service discovery, API gateway
 
 ## 🚀 Getting Started
 
-### 1. Clone the Repository
+### Option 1: Run with Docker (Recommended)
+
+#### Prerequisites
+- Docker Desktop installed and running
+- Docker Compose V2
+
+#### Quick Start
+```bash
+# Clone the repository
+git clone <repository-url>
+cd MICROSERVICES
+
+# Build and start all services
+docker-compose up --build
+
+# Or run in detached mode
+docker-compose up --build -d
+```
+
+#### Individual Docker Commands
+```bash
+# Build all images
+docker-compose build
+
+# Start services
+docker-compose up
+
+# Stop services
+docker-compose down
+
+# View logs
+docker-compose logs -f [service-name]
+
+# Scale a service (example: 3 instances of primary-service)
+docker-compose up --scale primary-service=3
+```
+
+### Option 2: Run Locally (Traditional)
+
+#### Prerequisites
+- Java 8 or higher
+- Maven 3.6+
+
+#### 1. Clone the Repository
 ```bash
 git clone <repository-url>
 cd MICROSERVICES
 ```
 
-### 2. Build All Services
+#### 2. Build All Services
 ```bash
 # Build Eureka Server
 cd eureka-server
@@ -86,28 +132,28 @@ cd ../unknown-service
 mvn clean install
 ```
 
-### 3. Start Services (In Order)
+#### 3. Start Services (In Order)
 
-#### Start Eureka Server First:
+##### Start Eureka Server First:
 ```bash
 cd eureka-server
 mvn spring-boot:run
 ```
 Wait for Eureka to fully start, then open: http://localhost:8761
 
-#### Start Unknown Service:
+##### Start Unknown Service:
 ```bash
 cd unknown-service
 mvn spring-boot:run
 ```
 
-#### Start Primary Service:
+##### Start Primary Service:
 ```bash
 cd primary-service
 mvn spring-boot:run
 ```
 
-#### Start API Gateway:
+##### Start API Gateway:
 ```bash
 cd api-gateway
 mvn spring-boot:run
@@ -147,7 +193,28 @@ spring.cloud.gateway.discovery.locator.lower-case-service-id=true
 
 ## 🧪 Testing
 
-### Health Checks
+### Docker Environment Testing
+```bash
+# Health Checks for Docker containers
+curl http://localhost:8761/actuator/health  # Eureka Server
+curl http://localhost:8081/actuator/health  # Unknown Service  
+curl http://localhost:8082/actuator/health  # Primary Service
+curl http://localhost:9090/actuator/health  # API Gateway
+
+# Service Registry Check
+curl http://localhost:8761/eureka/apps
+
+# API Endpoints (Docker)
+curl http://localhost:8081/api/unknown  # Direct Unknown Service
+curl http://localhost:8082/api/primary  # Direct Primary Service 
+curl http://localhost:9090/unknown-service/api/unknown  # Via Gateway
+curl http://localhost:9090/primary-service/api/primary  # Via Gateway
+
+# Check Docker containers status
+docker-compose ps
+```
+
+### Local Environment Testing
 ```bash
 # Check if all services are running
 curl http://localhost:8761/eureka/apps  # Eureka registry
@@ -162,7 +229,48 @@ curl http://localhost:9090/primary-service/api/primary  # Via Gateway
 
 ## 🐛 Troubleshooting
 
-### Common Issues
+### Docker Environment Issues
+
+1. **Services not starting**
+   ```bash
+   # Check container logs
+   docker-compose logs [service-name]
+   
+   # Check container status
+   docker-compose ps
+   
+   # Restart specific service
+   docker-compose restart [service-name]
+   ```
+
+2. **Services not registering with Eureka**
+   ```bash
+   # Check Eureka Server logs
+   docker-compose logs eureka-server
+   
+   # Verify network connectivity
+   docker network ls
+   docker network inspect microservices-network
+   ```
+
+3. **Port conflicts**
+   ```bash
+   # Check what's using the ports
+   netstat -tulpn | grep :8761
+   
+   # Stop conflicting services
+   docker-compose down
+   ```
+
+4. **Build failures**
+   ```bash
+   # Clean rebuild
+   docker-compose down
+   docker-compose build --no-cache
+   docker-compose up
+   ```
+
+### Local Environment Issues
 
 1. **Services not registering with Eureka**
    - Ensure Eureka Server is running first
@@ -180,29 +288,63 @@ curl http://localhost:9090/primary-service/api/primary  # Via Gateway
    - Verify service startup order
 
 ### Logs Location
-- Service logs are displayed in console
-- Check target/ directories for additional log files
+- **Docker**: Use `docker-compose logs [service-name]`
+- **Local**: Service logs displayed in console, check target/ directories
 
-## 📁 Project Structure
+## � Docker Architecture
+
+### Container Network
+All services run in a custom Docker network (`microservices-network`) for service-to-service communication using container hostnames.
+
+### Health Checks
+Each service includes health checks with:
+- **Interval**: 30 seconds
+- **Timeout**: 10 seconds  
+- **Start Period**: 60 seconds
+- **Retries**: 5
+
+### Service Dependencies
+- **eureka-server**: Starts first (no dependencies)
+- **unknown-service**: Depends on eureka-server
+- **primary-service**: Depends on eureka-server + unknown-service
+- **api-gateway**: Depends on all other services
+
+### Profiles
+Services use `SPRING_PROFILES_ACTIVE=docker` to load Docker-specific configurations.
+
+## �📁 Project Structure
 
 ```
 MICROSERVICES/
 ├── eureka-server/          # Service Discovery Server
 │   ├── src/main/java/
 │   ├── src/main/resources/
+│   │   ├── application.properties
+│   │   └── application-docker.properties
+│   ├── Dockerfile
 │   └── pom.xml
 ├── api-gateway/            # API Gateway Service  
 │   ├── src/main/java/
 │   ├── src/main/resources/
+│   │   ├── application.properties  
+│   │   └── application-docker.properties
+│   ├── Dockerfile
 │   └── pom.xml
 ├── primary-service/        # Primary Business Service
 │   ├── src/main/java/
 │   ├── src/main/resources/
+│   │   ├── application.properties
+│   │   └── application-docker.properties
+│   ├── Dockerfile
 │   └── pom.xml
 ├── unknown-service/        # Secondary Business Service
 │   ├── src/main/java/
 │   ├── src/main/resources/
+│   │   ├── application.properties
+│   │   └── application-docker.properties
+│   ├── Dockerfile
 │   └── pom.xml
+├── docker-compose.yml      # Container orchestration
 ├── .gitignore
 └── README.md
 ```

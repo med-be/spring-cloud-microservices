@@ -1,0 +1,41 @@
+# Compiled class files
+*.class
+target/
+
+# IDE files
+.idea/
+.vscode/
+.settings/
+.project
+.classpath
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+*.md
+
+# Docker files (not needed in build context)
+Dockerfile
+docker-compose.yml
+
+# Maven wrapper (keep only necessary files)
+.mvn/
+!.mvn/wrapper/maven-wrapper.properties
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
