@@ -1,6 +1,9 @@
 # Multi-stage build for Unknown Service
 FROM maven:3.8.4-openjdk-8-slim AS build
 
+# Add curl
+RUN apt-get update && apt-get install -y curl
+
 # Set working directory
 WORKDIR /app
 
