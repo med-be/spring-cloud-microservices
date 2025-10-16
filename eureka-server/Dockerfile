@@ -2,14 +2,14 @@
 FROM maven:3.8.4-openjdk-8-slim AS build
 
 # Add curl
-RUN apt-get update && apt-get install -y curl
+# RUN apt-get update && apt-get install -y curl
 
 # Set working directory
 WORKDIR /app
 
 # Copy pom.xml and download dependencies
 COPY pom.xml .
-RUN mvn dependency:go-offline -B
+# RUN mvn dependency:go-offline -B
 
 # Copy source code and build application
 COPY src ./src
