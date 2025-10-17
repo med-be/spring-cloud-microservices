@@ -18,6 +18,9 @@ RUN mvn clean package -DskipTests
 # Runtime stage
 FROM openjdk:8-jre-slim
 
+# Install wget for health checks
+RUN apt-get update && apt-get install -y wget && rm -rf /var/lib/apt/lists/*
+
 # Create non-root user for security
 RUN groupadd -r spring && useradd -r -g spring spring
 
@@ -34,9 +37,7 @@ USER spring
 # Expose port
 EXPOSE 8082
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD curl -f http://localhost:8082/actuator/health || exit 1
+# Health check handled by docker-compose
 
 # Run application
 ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "app.jar"]
